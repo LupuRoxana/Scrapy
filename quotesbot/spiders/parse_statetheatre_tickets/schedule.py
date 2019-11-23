@@ -4,6 +4,19 @@ import json
 from scrapy.utils.response import open_in_browser
 logger = logging.getLogger(__name__)
 
+class Venue(object):
+    def __init__(self, Venue, VenueCity, VenueAddress, VenueState, VenueLocation, VenueCountry):
+        self.Venue = Venue
+        self.VenueCity = VenueCity
+        self.VenueAddress = VenueAddress
+        self.VenueState = VenueState
+        self.VenueLocation = VenueLocation
+        self.VenueCountry = VenueCountry
+
+    def prtFunction(self):
+        print(
+            f"{self.Venue} {self.VenueCity} {self.VenueAddress} {self.VenueState} {self.VenueLocation} {self.VenueCountry}")
+
 class Event:
     def __init__(self, EventID, Event, PerformanceName, Description='', PerformanceDateTime='', TimeZone='', SeatMapUrl='',
                DisplayIcon=''):
