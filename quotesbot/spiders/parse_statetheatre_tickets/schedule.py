@@ -5,17 +5,18 @@ from scrapy.utils.response import open_in_browser
 logger = logging.getLogger(__name__)
 
 class Venue(object):
-    def __init__(self, Venue, VenueCity, VenueAddress, VenueState, VenueLocation, VenueCountry):
+    def __init__(self, Venue, VenueCity, VenueAddress, VenueState, stateName, VenueCountry, countryName):
         self.Venue = Venue
         self.VenueCity = VenueCity
         self.VenueAddress = VenueAddress
         self.VenueState = VenueState
-        self.VenueLocation = VenueLocation
+        self.stateName = stateName
         self.VenueCountry = VenueCountry
+        self.countryName = countryName
 
     def prtFunction(self):
         print(
-            f"{self.Venue} {self.VenueCity} {self.VenueAddress} {self.VenueState} {self.VenueLocation} {self.VenueCountry}")
+            f"{self.Venue} {self.VenueCity} {self.VenueAddress} {self.VenueState} {self.stateName} {self.VenueCountry} {self.countryName}")
 
 class Event:
     def __init__(self, EventID, Event, PerformanceName, Description='', PerformanceDateTime='', TimeZone='', SeatMapUrl='',
@@ -94,11 +95,18 @@ class ScheduleParser(object):
 
         return json.loads(response.body)
 
+    def splitStateCountryName(self, text, index):
+        initial_list = text.split('|')
+
+        print('++++++++++++++++++++++\n')
+        return(initial_list[index])
+
     def extract_schedule_page(self, response):
         print('Parsing events page !!!!!!!!!!!!!!!!!\n')
         res = self.get_data(response, 'finished parsing events')
         events = res["performance"]
         list_of_events = []
+        list_of_venues = []
         with open("events.txt", "w") as fout:
             for event in events:
                 fout.write('\n------------\n')
@@ -106,9 +114,26 @@ class ScheduleParser(object):
                 seat_url = f"https://statetheatre.showare.com/include/modules/SeatingChart/Request/getPerformanceSeatmap.asp?p={event['PerformanceID']}"
                 e1 = Event(event['EventID'], event['Event'], event['PerformanceName'], event['Description'], event['PerformanceDateTime'], event['TimeZone'], seat_url, event['DisplayIcon'])
                 list_of_events.append(e1)
+
+
+                initial_list = event['VenueLocation']
+                stateName = self.splitStateCountryName(initial_list,2)
+                countryName = self.splitStateCountryName(initial_list, 4)
+
+                v1 = Venue(event['Venue'], event['VenueCity'], event['VenueAddress'], event['VenueState'], stateName, event['VenueCountry'], countryName)
+                list_of_venues.append(v1)
+
+        # delete the for loop below
         i = 1;
         for event in list_of_events:
             print(i)
             i = i + 1
             event.prtFunction()
             print('-------------------------------------------------------')
+
+        i = 1;
+        for venue in list_of_venues:
+            print(i)
+            i = i + 1
+            venue.prtFunction()
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!')
