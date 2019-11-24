@@ -1,7 +1,9 @@
 import logging
 import scrapy
 import json
+from quotesbot.spiders.utils.http import JSONRequest
 from scrapy.utils.response import open_in_browser
+from pprint import pprint
 logger = logging.getLogger(__name__)
 
 class Venue(object):
@@ -122,6 +124,7 @@ class ScheduleParser(object):
 
                 v1 = Venue(event['Venue'], event['VenueCity'], event['VenueAddress'], event['VenueState'], stateName, event['VenueCountry'], countryName)
                 list_of_venues.append(v1)
+                yield JSONRequest(url=seat_url, method="GET", callback=self.parse_performance_seatmap)
 
         # delete the for loop below
         i = 1;
@@ -137,3 +140,36 @@ class ScheduleParser(object):
             i = i + 1
             venue.prtFunction()
             print('!!!!!!!!!!!!!!!!!!!!!!!!!')
+
+    def parse_performance_seatmap(self, response):
+
+        performance_data = self.get_data(response, "Received performance response")
+        performance_category_list= performance_data["categories"]
+        print("*************CATEGORY****************")
+        print(performance_category_list)
+        print('\n\n')
+        print("*************PRICE****************")
+        performance_price_list = performance_data["prices"]
+        print(performance_price_list)
+        print('\n\n')
+
+        for category in performance_category_list:
+            for price in performance_price_list:
+                if category['id'] == price['seatCategory']:
+                    category['price'] = price['price']
+                    category.pop('color')
+        performance_price = {cat['id']:cat for cat in performance_category_list}
+        # seats(cat_id, seat_id), available_seats(seat_id)
+        
+
+
+        pprint(performance_price)
+        print('\n\n')
+        print("*************FINAL CATEGORY****************")
+        for category in performance_category_list:
+            print(category)
+
+        print('\n\n')
+        performance_sections_list = performance_data["sections"]
+
+
