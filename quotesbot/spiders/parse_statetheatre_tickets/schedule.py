@@ -119,6 +119,8 @@ class Event:
         self.DisplayIcon = DisplayIcon
         self.logger = logger
 
+
+
     def __str__(self):
         return f"{self.EventID} {self.Event} {self.PerformanceName} {self.Description} {self.PerformanceDateTime} {self.TimeZone} {self.SeatMapUrl} {self.DisplayIcon}"
 
@@ -141,7 +143,7 @@ class Event:
                 if category['id'] == price['seatCategory']:
                     category['price'] = price['price']
                     category.pop('color')
-        self.performance_price_dict = {cat['id']: cat for cat in performance_category_list}
+        self.performance_price_dict = {str(cat['id']): cat for cat in performance_category_list}
         # seats(cat_id, seat_id), available_seats(seat_id)
         url = f"https://statetheatre.showare.com/include/modules/SeatingChart/request/getPerformanceSeats.asp?p={self.PerformanceId}"
         print(url)
@@ -151,17 +153,34 @@ class Event:
         total_tickets = []
         self.seats_data = self.get_data(response, "Received seats response")
         print(self.venue)
+        url = f"https://statetheatre.showare.com/include/modules/SeatingChart/request/getPerformanceAvailability.asp?p={self.PerformanceId}"
+        print(url)
 
-        # performance_seats_dict = {}
-        # for seat in seats_data:
-        #     id_seat = self.splitStateCountryName(seat,0)
-        #     id_category = self.splitStateCountryName(seat, 4)
-        #     if id_category in performance_seats_dict:
-        #         self.performance_price_dict[id_category]['total'] += 1
-        #     else:
-        #         self.performance_price_dict[id_category]['total'] = 0
-        #
-        # pprint(performance_seats_dict)
+
+        yield JSONRequest(url, method="GET", callback=self.parse_performance_seats_availability)
+
+    def parse_performance_seats_availability(self, response):
+        seats_availability = self.get_data(response, 'Received seats availability response')
+
+        print("----------------------")
+        seats_availability_list = []
+        for seats_av in seats_availability:
+            seats_availability_list.append(self.splitStateCountryName(seats_av, 0))
+        pprint(seats_availability_list)
+        for seat in self.seats_data:
+            id_seat = self.splitStateCountryName(seat,0)
+            id_category = self.splitStateCountryName(seat, 4)
+            if 'total' not in self.performance_price_dict[id_category]:
+                self.performance_price_dict[id_category]['total'] = 0
+                self.performance_price_dict[id_category]['available'] = 0
+            self.performance_price_dict[id_category]['total'] += 1
+            if id_seat in seats_availability_list:
+                self.performance_price_dict[id_category]['available'] += 1
+
+        print("\n\n----------------------")
+        pprint(self.performance_price_dict)
+
+
 
     def get_data(self, response, msg, ok=None):
         self.logger.info(f"{msg}: {response.status}")
@@ -172,3 +191,7 @@ class Event:
             return
 
         return json.loads(response.body)
+
+    def splitStateCountryName(self, text, index):
+        initial_list = text.split('|')
+        return (initial_list[index])
