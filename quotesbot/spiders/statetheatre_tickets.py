@@ -1,7 +1,7 @@
 import logging
 import scrapy
 
-from quotesbot.spiders.parse_statetheatre_tickets.schedule import ScheduleParser
+from quotesbot.spiders.parse_mydso.schedule import ScheduleParser
 
 logger = logging.getLogger(__name__)
 

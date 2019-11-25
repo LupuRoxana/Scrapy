@@ -1,25 +1,14 @@
-import logging
-import scrapy
 import json
+import logging
+from urllib.parse import urlencode
+
+import scrapy
+
 from quotesbot.spiders.utils.http import JSONRequest
-from scrapy.utils.response import open_in_browser
+
 from pprint import pprint
 
 logger = logging.getLogger(__name__)
-
-
-class Venue(object):
-    def __init__(self, Venue, VenueCity, VenueAddress, VenueState, stateName, VenueCountry, countryName):
-        self.Venue = Venue
-        self.VenueCity = VenueCity
-        self.VenueAddress = VenueAddress
-        self.VenueState = VenueState
-        self.stateName = stateName
-        self.VenueCountry = VenueCountry
-        self.countryName = countryName
-
-    def __str__(self):
-        return f"{self.Venue} {self.VenueCity} {self.VenueAddress} {self.VenueState} {self.stateName} {self.VenueCountry} {self.countryName}"
 
 
 class ScheduleParser(object):
@@ -28,41 +17,17 @@ class ScheduleParser(object):
         self.url = url
 
     def get_start_request(self):
-        print('Making request for url ', self.url)
-        # Make the request to receive the cookie (https://stackoverflow.com/questions/34707532/python-post-request-not-returning-html-requesting-javascript-be-enabled/38082203)
-        lua_script = """
-        function main(splash)
-        local url = splash.args.url
-        assert(splash:go(url))
-        assert(splash:wait(2))
-        return {
-            html = splash:html(),
-            cookies = splash:get_cookies(),
-        }
-        end
-        """
         return scrapy.Request(self.url, callback=self.parse_schedule_page)
 
-    def parse(self, response):
-        print('response: ', response)
-        open_in_browser(response)
-        return self.parse_url(response.url)
-
     def parse_schedule_page(self, response):
-        print('******** parsing schedule page!!!!!!')
-        # self.logger.info(f"Event schedules: {response.status}")
+        self.logger.info(f"Event schedules: {response.status}")
 
         ok = (200, 201)
         if response.status not in ok:
             self.logger.error(f"Request to {response.url} failed, existing")
             return None
-
-        print('will extract schedule pageß')
-
         try:
-            # for schedule_result in self.extract_schedule_page(response):
-            #     yield schedule_result
-            yield next(self.extract_schedule_page(response))
+            yield self.extract_schedule_page(response)
         except Exception as e:
             self.logger.error(f"Failed to parse {response.url}")
             content = response.body[:10240]
@@ -74,136 +39,122 @@ class ScheduleParser(object):
             self.logger.exception(e)
             return None
 
-    def splitStateCountryName(self, text, index):
-        initial_list = text.split('|')
-        return (initial_list[index])
 
-    def extract_schedule_page(self, response):
-        print('Parsing events page !!!!!!!!!!!!!!!!!\n')
-        res = self.get_data(response, 'finished parsing events')
-        events = res["performance"]
+    @staticmethod
+    def extract_schedule_page(response):
+        data = json.loads(response.body)
+        events = data['data']['prods']
         for event in events:
-            print('+++++++++++')
-            print(event['DisplayIcon'])
-            if event['DisplayIcon'] == 'buy_tickets':
-                StockEtickets = True
-                print('11111111')
-                print(StockEtickets)
-            else:
-                print('22222222')
-                StockEtickets = False
-                print(StockEtickets)
-            ev = Event(event['EventID'], event['Event'], event['PerformanceID'], event['PerformanceName'],
-                       event['Description'], event['PerformanceDateTime'], event['TimeZone'], StockEtickets)
-            initial_list = event['VenueLocation']
-            stateName = self.splitStateCountryName(initial_list, 2)
-            countryName = self.splitStateCountryName(initial_list, 4)
-
-            ev.venue = Venue(event['Venue'], event['VenueCity'], event['VenueAddress'], event['VenueState'], stateName,
-                             event['VenueCountry'], countryName)
-            print("This is the final Event")
-            pprint(ev.__str__())
-            yield ev.start_request()
-
-    def get_data(self, response, msg, ok=None):
-        self.logger.info(f"{msg}: {response.status}")
-
-        ok = ok or (200, 201)
-        if response.status not in ok:
-            self.logger.error(f"Request to {response.url} failed, existing")
-            return
-
-        return json.loads(response.body)
+            event_perfs = event['perfs']
+            for ep in event_perfs:
+                buy_url = f"https://www.mydso.com/h/syos/SyosSummary?houseid=meyerson&id={ep['id']}&type=perf"
+                event_name = event['title'].replace("\xa0", " & ")
+                ev = EventParser(event_name, ep['id'], buy_url, ep['date'])
+                print(ev)
+                yield ev.get_start_request()
 
 
-class Event:
-    def __init__(self, EventID, Event, PerformanceId, PerformanceName, Description='', PerformanceDateTime='',
-                 TimeZone='',
-                 StockEtickets=''):
-        self.EventID = EventID
-        self.Event = Event
-        self.PerformanceId = PerformanceId
-        self.PerformanceName = PerformanceName
-        self.Description = Description
-        self.PerformanceDateTime = PerformanceDateTime
-        self.TimeZone = TimeZone
-        self.SeatMapUrl = f"https://statetheatre.showare.com/orderticketsvenue.asp?p={self.PerformanceId}"
-        self.StockEtickets = StockEtickets
-        self.logger = logger
+class EventParser(object):
 
+    def __init__(self,name, performance_id, buy_url, startDateTimeAsString):
 
-
+        self.event = {
+            "name": name,
+            "externalId": performance_id,
+            "timezone": 'CST',
+            "startDateTimeAsString": startDateTimeAsString,
+            "buy_url": buy_url
+        }
+        self.venue = {
+            'name': 'Morton H. Meyerson Symphony Center',
+            'cityName': 'Dallas',
+            'addressLine1': '2301 Flora St',
+            'stateCode': '75201',
+            'stateName': 'Texas',
+            'countryCode': 'USA',
+            'countryName': 'USA'
+        }
     def __str__(self):
-        return f"{self.EventID} {self.Event} {self.PerformanceName} {self.Description} {self.PerformanceDateTime} {self.TimeZone} {self.SeatMapUrl} {self.StockEtickets}"
+        return f"{self.event}"
+    def get_start_request(self):
 
-    def start_request(self):
-        seat_url = f"https://statetheatre.showare.com/include/modules/SeatingChart/Request/getPerformanceSeatmap.asp?p={self.PerformanceId}"
-        return JSONRequest(url=seat_url, method="GET", callback=self.parse_performance_seatmap)
-
-    def parse_performance_seatmap(self, response):
-        performance_data = self.get_data(response, "Received performance response")
-        performance_category_list = performance_data["categories"]
-        print("*************CATEGORY****************")
-        print(performance_category_list)
-        print('\n\n')
-        print("*************PRICE****************")
-        performance_price_list = performance_data["prices"]
-        print(performance_price_list)
-        print('\n\n')
-        for category in performance_category_list:
-            for price in performance_price_list:
-                if category['id'] == price['seatCategory']:
-                    category['price'] = price['price']
-                    category.pop('color')
-        self.performance_price_dict = {str(cat['id']): cat for cat in performance_category_list}
-        # seats(cat_id, seat_id), available_seats(seat_id)
-        url = f"https://statetheatre.showare.com/include/modules/SeatingChart/request/getPerformanceSeats.asp?p={self.PerformanceId}"
-        print(url)
-        yield JSONRequest(url, method="GET", callback=self.parse_performance_seats)
-
-    def parse_performance_seats(self, response):
-        total_tickets = []
-        self.seats_data = self.get_data(response, "Received seats response")
-        print(self.venue)
-        url = f"https://statetheatre.showare.com/include/modules/SeatingChart/request/getPerformanceAvailability.asp?p={self.PerformanceId}"
-        print(url)
-
-
-        yield JSONRequest(url, method="GET", callback=self.parse_performance_seats_availability)
-
-    def parse_performance_seats_availability(self, response):
-        seats_availability = self.get_data(response, 'Received seats availability response')
-
-        print("----------------------")
-        seats_availability_list = []
-        for seats_av in seats_availability:
-            seats_availability_list.append(self.splitStateCountryName(seats_av, 0))
-        pprint(seats_availability_list)
-        for seat in self.seats_data:
-            id_seat = self.splitStateCountryName(seat,0)
-            id_category = self.splitStateCountryName(seat, 4)
-            if 'total' not in self.performance_price_dict[id_category]:
-                self.performance_price_dict[id_category]['total'] = 0
-                self.performance_price_dict[id_category]['available'] = 0
-            self.performance_price_dict[id_category]['total'] += 1
-            if id_seat in seats_availability_list:
-                self.performance_price_dict[id_category]['available'] += 1
-
-        print("\n\n----------------------")
-        pprint(self.performance_price_dict)
-
-
-
-    def get_data(self, response, msg, ok=None):
-        self.logger.info(f"{msg}: {response.status}")
-
-        ok = ok or (200, 201)
-        if response.status not in ok:
-            self.logger.error(f"Request to {response.url} failed, existing")
-            return
-
-        return json.loads(response.body)
-
-    def splitStateCountryName(self, text, index):
-        initial_list = text.split('|')
-        return (initial_list[index])
+        query_params = {'performanceId': self.event['externalId']}
+        url = f"https://tickets.nashvillesymphony.org/api/syos/GetPerformanceDetails?{urlencode(query_params)}"
+        return JSONRequest(url=url, method="GET", callback=self.parse_performance_info)
+#
+#     def parse_performance_info(self, response):
+#
+#         performance_id = self.event['externalId']
+#         performance_data = self.get_data(response, f"Received performance response for {performance_id}")
+#         product_number = performance_data['prod_no']
+#         self.event["description"] = performance_data["description"]
+#         self.event['startDateTimeAsString'] = performance_data['perf_dt']
+#         self.event['startDateTime'] = parse(performance_data['perf_dt']).strftime("%Y-%m-%dT%H:%M:00.000-05:00")
+#         self.event["seatmapUrl"] = f"https://tickets.nashvillesymphony.org/{product_number}/{performance_id}"
+#         self.venue['description'] = performance_data.get('facility_desc')
+#         self.venue['externalId'] = performance_data['facility_no']
+#
+#         query_params = {'performanceId': performance_id}
+#         screens_url = f"https://tickets.nashvillesymphony.org/api/syos/GetScreens?{urlencode(query_params)}"
+#         yield JSONRequest(url=screens_url, method="GET", callback=self.parse_all_screens_info)
+#
+#     def parse_all_screens_info(self, response):
+#
+#         screens = self.get_data(response, f"Received screens response for {self.event['externalId']}")
+#         self.logger.info(f"Received {len(screens)} screen in total")
+#         for screen in screens:
+#             query_params = {
+#                 'performanceId': self.event['externalId'],
+#                 'facilityId': self.venue["externalId"],
+#                 'screenId': screen["screen_no"]
+#             }
+#             screen_url = f"https://tickets.nashvillesymphony.org/api/syos/GetSeatList?{urlencode(query_params)}"
+#             yield JSONRequest(url=screen_url, method="GET", callback=self.parse_screen_info,
+#                               meta={'section': screen["screen_desc"]})
+#
+#     def parse_screen_info(self, response):
+#
+#         section = response.meta.get('section')
+#         msg = f"Received screen response for performance {self.event['externalId']} screen {section}"
+#         screen_info = self.get_data(response, msg)
+#         seats = screen_info.get('seats')
+#         available_prices = {price['ZoneNo']: price['Price'] for price in screen_info.get('AvailablePrices')}
+#
+#         tickets = {}
+#         existing_seats = [seat for seat in seats if seat["zone_no"] > 0]
+#         for seat in existing_seats:
+#             zone = seat["ZoneLabel"]
+#             zone_id = seat["zone_no"]
+#             if zone_id not in tickets:
+#                 tickets[zone_id] = {
+#                     "totalSeats": 0, "availableSeats": 0, "section": section,
+#                     "subsection": zone, "priceAreaId": zone_id, "price": available_prices.get(zone_id),
+#                     "currency": 'USD', "stockEtickets": True, "priceAreaDescription": zone_id}
+#             tickets[zone_id]['totalSeats'] += 1
+#
+#             is_seat_available = seat['seat_status_desc'] == 'Available'
+#             if is_seat_available:
+#                 tickets[zone_id]['availableSeats'] += 1
+#         # data to be sent to server
+#         pprint({
+#             "backend": "https://www.nashvillesymphony.org/tickets/",
+#             'event': self.event,
+#             'venue': self.venue,
+#             'tickets': list(tickets.values()),
+#         })
+#         return {
+#             "backend": "https://www.nashvillesymphony.org/tickets/",
+#             'event': self.event,
+#             'venue': self.venue,
+#             'tickets': list(tickets.values()),
+#         }
+#
+    # def get_data(self, response, msg, ok=None):
+    #     self.logger.info(f"{msg}: {response.status}")
+    #
+    #     ok = ok or (200, 201)
+    #     if response.status not in ok:
+    #         self.logger.error(f"Request to {response.url} failed, existing")
+    #         return
+    #
+    #     return json.loads(response.body)
