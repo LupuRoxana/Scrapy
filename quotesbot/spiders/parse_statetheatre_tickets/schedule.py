@@ -83,14 +83,26 @@ class ScheduleParser(object):
         res = self.get_data(response, 'finished parsing events')
         events = res["performance"]
         for event in events:
+            print('+++++++++++')
+            print(event['DisplayIcon'])
+            if event['DisplayIcon'] == 'buy_tickets':
+                StockEtickets = True
+                print('11111111')
+                print(StockEtickets)
+            else:
+                print('22222222')
+                StockEtickets = False
+                print(StockEtickets)
             ev = Event(event['EventID'], event['Event'], event['PerformanceID'], event['PerformanceName'],
-                       event['Description'], event['PerformanceDateTime'], event['TimeZone'], event['DisplayIcon'])
+                       event['Description'], event['PerformanceDateTime'], event['TimeZone'], StockEtickets)
             initial_list = event['VenueLocation']
             stateName = self.splitStateCountryName(initial_list, 2)
             countryName = self.splitStateCountryName(initial_list, 4)
 
             ev.venue = Venue(event['Venue'], event['VenueCity'], event['VenueAddress'], event['VenueState'], stateName,
                              event['VenueCountry'], countryName)
+            print("This is the final Event")
+            pprint(ev.__str__())
             yield ev.start_request()
 
     def get_data(self, response, msg, ok=None):
@@ -107,7 +119,7 @@ class ScheduleParser(object):
 class Event:
     def __init__(self, EventID, Event, PerformanceId, PerformanceName, Description='', PerformanceDateTime='',
                  TimeZone='',
-                 DisplayIcon=''):
+                 StockEtickets=''):
         self.EventID = EventID
         self.Event = Event
         self.PerformanceId = PerformanceId
@@ -116,13 +128,13 @@ class Event:
         self.PerformanceDateTime = PerformanceDateTime
         self.TimeZone = TimeZone
         self.SeatMapUrl = f"https://statetheatre.showare.com/orderticketsvenue.asp?p={self.PerformanceId}"
-        self.DisplayIcon = DisplayIcon
+        self.StockEtickets = StockEtickets
         self.logger = logger
 
 
 
     def __str__(self):
-        return f"{self.EventID} {self.Event} {self.PerformanceName} {self.Description} {self.PerformanceDateTime} {self.TimeZone} {self.SeatMapUrl} {self.DisplayIcon}"
+        return f"{self.EventID} {self.Event} {self.PerformanceName} {self.Description} {self.PerformanceDateTime} {self.TimeZone} {self.SeatMapUrl} {self.StockEtickets}"
 
     def start_request(self):
         seat_url = f"https://statetheatre.showare.com/include/modules/SeatingChart/Request/getPerformanceSeatmap.asp?p={self.PerformanceId}"
