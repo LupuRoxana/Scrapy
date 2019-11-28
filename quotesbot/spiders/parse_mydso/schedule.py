@@ -86,15 +86,21 @@ class EventParser(object):
         tickets_sections = data['sections']
         print('!!!!!!!!!!!!!!!!!')
         tickets_zones = data['zones']
-
+        # print(tickets_zones)
         tickets_dict = {}
         for ticket in tickets_sections:
             ticket_id = str(ticket['id'])
             if ticket['id'] not in tickets_dict:
                 tickets_dict[ticket_id] = {"name":ticket['name'], "total":ticket['total'], "available":ticket['avail']}
-        pprint(tickets_dict)
-        for price_zones in tickets_zones:
-            pass
+        # pprint(tickets_dict)
+        for price_zone in tickets_zones:
+                        for
+            print(section_id)
+            if section_id in tickets_dict:
+                tickets_dict[section_id].__setitem__('price', price_zone['price'])
+                # print(tickets_dict[section_id])
+                # tickets_dict[[price_zones['sections']['id']]['price'] = price_zones['price']
+
 
 
 
