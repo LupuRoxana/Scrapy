@@ -54,7 +54,7 @@ class ScheduleParser(object):
                 ev = EventParser(event_name, ep['id'], buy_url, ep['date'])
 
                 url = f"https://www.mydso.com/h/syos/SyosSummary?houseid=meyerson&id={ep['id']}&type=perf"
-                print(url)
+                # print(url)
                 yield JSONRequest(url, method="GET", callback=ev.parse_performance_seats)
 
 
@@ -84,11 +84,21 @@ class EventParser(object):
     def parse_performance_seats(self, response):
         data = json.loads(response.body)
         tickets_sections = data['sections']
-        tickets_zones = data['zone']
-        tickets_price_type = data['']
-        for ticket in tickets_sections:
+        print('!!!!!!!!!!!!!!!!!')
+        tickets_zones = data['zones']
 
-        pass
+        tickets_dict = {}
+        for ticket in tickets_sections:
+            ticket_id = str(ticket['id'])
+            if ticket['id'] not in tickets_dict:
+                tickets_dict[ticket_id] = {"name":ticket['name'], "total":ticket['total'], "available":ticket['avail']}
+        pprint(tickets_dict)
+        for price_zones in tickets_zones:
+            pass
+
+
+
+
     def get_data(self, response, msg, ok=None):
         self.logger.info(f"{msg}: {response.status}")
 
