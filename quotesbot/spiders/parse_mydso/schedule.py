@@ -70,6 +70,7 @@ class EventParser(object):
             "timezone": 'CST',
             "startDateTimeAsString": startDateTimeAsString,
             "buy_url": buy_url
+
         }
         self.venue = {
             'name': 'Morton H. Meyerson Symphony Center',
@@ -94,6 +95,7 @@ class EventParser(object):
 
         # print(tickets_zones)
         tickets_dict = {}
+
         for ticket in tickets_sections:
             ticket_id = ticket['id']
             if ticket['id'] not in tickets_dict:
@@ -101,14 +103,22 @@ class EventParser(object):
                 for price_id in ticket['zones']:
                     tickets_dict[ticket_id]['price_range'] = {"id_withPrice": price_id['id'], "total_withPrice": price_id['total'],"availabe_withPrice": price_id['avail']}
                     # print('Price for')
-        print(tickets_zones)
+        # print(tickets_zones)
         tickets_zones_dict = {zone['id']: zone for zone in tickets_zones}
         for k,v in tickets_dict.items():
             id_withPrice = v['price_range']['id_withPrice']
             if id_withPrice in tickets_zones_dict:
                 if tickets_zones_dict[id_withPrice]['pricetypes'] != '':
                     tickets_dict[k]['price_range']['price'] = tickets_zones_dict[id_withPrice]['pricetypes'][0]['price']
-        # pprint(tickets_dict)
+        return {
+            "backend": "https://www.mydso.com",
+            'event' : self.event,
+            'venue': self.venue,
+            'tickets': list(tickets_dict.values())
+        }
+
+
+
 
 
 
