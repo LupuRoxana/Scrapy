@@ -87,3 +87,18 @@ ENV/
 
 # Rope project settings
 .ropeproject
+quotesbot/spiders/list.py
+quotesbot/.idea/inspectionProfiles/profiles_settings.xml
+quotesbot/.idea/vcs.xml
+quotesbot/.idea/quotesbot.iml
+quotesbot/.idea/modules.xml
+quotesbot/.idea/misc.xml
+quotesbot/.idea/.gitignore
+.idea/inspectionProfiles/profiles_settings.xml
+quotes.json
+.idea/.gitignore
+.idea/misc.xml
+.idea/modules.xml
+.idea/quotesbot-master.iml
+.idea/vcs.xml
+quotesbot/events.txt

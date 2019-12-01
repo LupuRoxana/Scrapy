@@ -60,7 +60,7 @@ class EventParser(object):
         self.event = {
             "name": name,
             "externalId": performance_id,
-            "timezone": 'CST',
+            "timezone": 'EST',
             "startDateTimeAsString": startDateTimeAsString,
             "buy_url": buy_url
 
