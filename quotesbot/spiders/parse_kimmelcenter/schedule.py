@@ -2,7 +2,7 @@ import json
 import logging
 import scrapy
 
-from spiders.utils.http import JSONRequest
+from quotesbot.spiders.utils.http import JSONRequest
 
 from pprint import pprint
 
@@ -43,10 +43,10 @@ class ScheduleParser(object):
 
     @staticmethod
     def extract_schedule_page(response):
-        data = json.loads(response.body)
-        events = data['performance']
-        for event in events:
-            street_number = event['venueAdress'].split(" ", 0)
+        data = get_data(response,'')
+        for dt in data:
+            event = dt['performance']
+            street_number = event['venueAddress'].split(" ", 0)
             buy_url = f"https://tickets.philorch.org/SmartSeat/Index?itemNumber={event['id']}#/seatmap"
             ev = EventParser(event['name'], event['id'], buy_url, event['eventDate'], event['venueName'], street_number)
             yield JSONRequest(buy_url, method="GET", callback=ev.parse_performance_seats)
@@ -78,7 +78,7 @@ class EventParser(object):
         return f"{self.event}\n{self.venue}"
 
     def parse_performance_seats(self, response):
-        pass
+        pprint(self.event)
         # data = self.get_data(response, '')
         # if 'zones' not in data:
         #     pprint(data)
@@ -110,12 +110,12 @@ class EventParser(object):
         #     'venue': self.venue,
         #     'tickets': list(tickets_dict.values())}
 
-    def get_data(self, response, msg, ok=None):
-        self.logger.info(f"{msg}: {response.status}")
+def get_data(response, msg, ok=None):
+    logger.info(f"{msg}: {response.status}")
 
-        ok = ok or (200, 201)
-        if response.status not in ok:
-            self.logger.error(f"Request to {response.url} failed, existing")
-            return
+    ok = ok or (200, 201)
+    if response.status not in ok:
+        logger.error(f"Request to {response.url} failed, existing")
+        return
 
-        return json.loads(response.body)
+    return json.loads(response.body)
