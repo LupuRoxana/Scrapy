@@ -46,9 +46,11 @@ class ScheduleParser(object):
         data = get_data(response,'')
         for dt in data:
             event = dt['performance']
-            street_number = event['venueAddress'].split(" ", 0)
+            street_number = event['venueAddress'].split(' ', 1)
+            print("This is the street number")
+            print(street_number[0])
             buy_url = f"https://tickets.philorch.org/SmartSeat/Index?itemNumber={event['id']}#/seatmap"
-            ev = EventParser(event['name'], event['id'], buy_url, event['eventDate'], event['venueName'], street_number)
+            ev = EventParser(event['name'], event['id'], buy_url, event['eventDate'], event['venueName'], street_number[0])
             yield JSONRequest(buy_url, method="GET", callback=ev.parse_performance_seats)
 
 
@@ -68,7 +70,7 @@ class EventParser(object):
         self.venue = {
             'name': venue_Name,
             'cityName': 'Philadelphia',
-            'addressLine1': f"{street_number}South Broad Street",
+            'addressLine1': f"{street_number}{' '}South Broad Street",
             'stateCode': '19102',
             'stateName': 'Pennsylvania',
             'countryCode': 'USA',
@@ -78,7 +80,10 @@ class EventParser(object):
         return f"{self.event}\n{self.venue}"
 
     def parse_performance_seats(self, response):
-        pprint(self.event)
+        print(self.event)
+        print('\n---------------\n')
+        print(self.venue)
+        return True
         # data = self.get_data(response, '')
         # if 'zones' not in data:
         #     pprint(data)
