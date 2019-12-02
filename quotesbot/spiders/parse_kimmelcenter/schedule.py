@@ -108,30 +108,31 @@ class EventParser(object):
         all_seats_pricing = data.get('allSeatPricing', [])
 
         for seats_pricing in all_seats_pricing:
+            prices = seats_pricing.get('prices', [])
+            for price in prices:
+                price_id = price['zoneId']
+                if price['zoneId'] not in tickets_dict:
+                    tickets_dict[price_id] = {"price":price['price']}
+        print('!!!!!!!!!!!!!!!!!')
+        # pprint(tickets_dict)
 
-            print(all_seats_pricing)
-            print('\n---------------\n')
+        seats = data.get('levelSeats', [])
+        tickets_zones_dict = {}
+        for seat in seats:
+            is_available = seat['tessituraSeat']['isAvailable']
+            zone_id = seat['tessituraSeat']['zoneId']
+            id_seat  = seat['seatId']
+            section_desc = seat['tessituraSeat']['sectionDescription']
+            tickets_zones_dict = {id_seat: {"section" : section_desc, "priceAreaId": zone_id, "curency": "USD", "available": is_available}}
+
+            if zone_id in tickets_dict:
+                print("ifffffffffffff")
+                tickets_zones_dict[id_seat]['price'] = tickets_zones_dict[zone_id]["price"]
+        print('!!!!!!!!!!!!!!!!!')
+        pprint(tickets_zones_dict)
 
 
-        # data = self.get_data(response, '')
-        # if 'zones' not in data:
-        #     pprint(data)
-        # tickets_sections = data.get('sections', [])
-        # # print('!!!!!!!!!!!!!!!!!')
-        #
-        # tickets_zones = data.get('zones', [])
-        #
-        # # print(tickets_zones)
-        # tickets_dict = {}
-        #
-        # for ticket in tickets_sections:
-        #     ticket_id = ticket['id']
-        #     if ticket['id'] not in tickets_dict:
-        #         tickets_dict[ticket_id] = {"name":ticket['name'], "total":ticket['total'], "available":ticket['avail'], "price_range":{}}
-        #         for price_id in ticket['zones']:
-        #             tickets_dict[ticket_id]['price_range'] = {"id_withPrice": price_id['id'], "total_withPrice": price_id['total'],"availabe_withPrice": price_id['avail']}
-        #             # print('Price for')
-        # # print(tickets_zones)
+
         # tickets_zones_dict = {zone['id']: zone for zone in tickets_zones}
         # for k,v in tickets_dict.items():
         #     id_withPrice = v['price_range']['id_withPrice']
