@@ -41,17 +41,22 @@ class ScheduleParser(object):
             return None
 
 
+
     @staticmethod
     def extract_schedule_page(response):
         data = get_data(response,'')
         for dt in data:
             event = dt['performance']
             street_number = event['venueAddress'].split(' ', 1)
-            print("This is the street number")
-            print(street_number[0])
+
+            # print(street_number[0])
             buy_url = f"https://tickets.philorch.org/SmartSeat/Index?itemNumber={event['id']}#/seatmap"
+            url = "https://tickets.philorch.org/api/seating/GetSeatmap"
+            print("This is buy url")
+            print(buy_url)
             ev = EventParser(event['name'], event['id'], buy_url, event['eventDate'], event['venueName'], street_number[0])
-            yield JSONRequest(buy_url, method="GET", callback=ev.parse_performance_seats)
+            yield JSONRequest(url, method="GET", callback=ev.parse_performance_seats)
+
 
 
 class EventParser(object):
@@ -77,13 +82,16 @@ class EventParser(object):
             'countryName': 'USA'
         }
     def __str__(self):
-        return f"{self.event}\n{self.venue}"
+        return f"{self.event}"
 
     def parse_performance_seats(self, response):
-        print(self.event)
+
+        data = get_data(response, 'Message')
+        all_seats_pricing = data['allSeatPricing']
+        print(all_seats_pricing)
         print('\n---------------\n')
-        print(self.venue)
-        return True
+
+
         # data = self.get_data(response, '')
         # if 'zones' not in data:
         #     pprint(data)
@@ -115,12 +123,11 @@ class EventParser(object):
         #     'venue': self.venue,
         #     'tickets': list(tickets_dict.values())}
 
+
 def get_data(response, msg, ok=None):
     logger.info(f"{msg}: {response.status}")
-
     ok = ok or (200, 201)
     if response.status not in ok:
         logger.error(f"Request to {response.url} failed, existing")
         return
-
     return json.loads(response.body)
