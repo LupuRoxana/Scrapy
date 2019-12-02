@@ -103,48 +103,32 @@ class EventParser(object):
 
     def parse_performance_seats(self, response):
         data = get_data(response, 'Message')
-
-        tickets_dict = {}
+        zones_dict = {}
         all_seats_pricing = data.get('allSeatPricing', [])
-
         for seats_pricing in all_seats_pricing:
             prices = seats_pricing.get('prices', [])
             for price in prices:
                 price_id = price['zoneId']
-                if price['zoneId'] not in tickets_dict:
-                    tickets_dict[price_id] = {"price":price['price']}
-        print('!!!!!!!!!!!!!!!!!')
-        # pprint(tickets_dict)
-
+                if price['zoneId'] not in zones_dict:
+                    zones_dict[str(price_id)] = {"price":price['price']}
+        pprint(zones_dict)
         seats = data.get('levelSeats', [])
-        tickets_zones_dict = {}
+        tickets_dict = {}
         for seat in seats:
             is_available = seat['tessituraSeat']['isAvailable']
             zone_id = seat['tessituraSeat']['zoneId']
             id_seat  = seat['seatId']
             section_desc = seat['tessituraSeat']['sectionDescription']
-            tickets_zones_dict = {id_seat: {"section" : section_desc, "priceAreaId": zone_id, "curency": "USD", "available": is_available}}
-
-            if zone_id in tickets_dict:
-                print("ifffffffffffff")
-                tickets_zones_dict[id_seat]['price'] = tickets_zones_dict[zone_id]["price"]
-        print('!!!!!!!!!!!!!!!!!')
-        pprint(tickets_zones_dict)
-
-
-
-        # tickets_zones_dict = {zone['id']: zone for zone in tickets_zones}
-        # for k,v in tickets_dict.items():
-        #     id_withPrice = v['price_range']['id_withPrice']
-        #     if id_withPrice in tickets_zones_dict:
-        #         if tickets_zones_dict[id_withPrice]['pricetypes'] != '':
-        #             tickets_dict[k]['price_range']['price'] = tickets_zones_dict[id_withPrice]['pricetypes'][0]['price']
-        # return {
-        #     "backend": "https://www.mydso.com",
-        #     'event' : self.event,
-        #     'venue': self.venue,
-        #     'tickets': list(tickets_dict.values())}
-
+            if zone_id not in tickets_dict:
+                tickets_dict[zone_id] = {
+                    "totalSeats": 0, "availableSeats": 0, "section": section_desc, "priceAreaId": zone_id,
+                    "currency": 'USD', "stockEtickets": True, "priceAreaDescription":zone_id}
+            tickets_dict[zone_id]['totalSeats'] += 1
+            if is_available:
+                tickets_dict[zone_id]['availableSeats'] += 1
+            if zone_id in zones_dict:
+                tickets_dict[zone_id]['price'] = zones_dict[zone_id]["price"]
+        pprint(tickets_dict)
 
 def get_data(response, msg, ok=None):
     logger.info(f"{msg}: {response.status}")
