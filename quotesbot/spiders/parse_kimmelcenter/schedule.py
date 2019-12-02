@@ -54,8 +54,21 @@ class ScheduleParser(object):
             url = "https://tickets.philorch.org/api/seating/GetSeatmap"
             print("This is buy url")
             print(buy_url)
+            data = {"itemType":0,
+                    "itemId":41228,
+                    "minPrice":"null",
+                    "maxPrice":"null",
+                    "allowSeparatedSeats":"false",
+                    "priceTypeQuantities":[],
+                    "venueLevels":[],
+                    "allowAisleAccessSelected":"false",
+                    "additionalSeatingOptions":[],
+                    "seatMapId":"","language":"null",
+                    "seatsToIgnore":[],
+                    "isSyosOnly":"false"}
+            headers = {"content-type": "application/json"}
             ev = EventParser(event['name'], event['id'], buy_url, event['eventDate'], event['venueName'], street_number[0])
-            yield JSONRequest(url, method="GET", callback=ev.parse_performance_seats)
+            yield JSONRequest(url, method="POST", headers = headers, data = data, meta={"proxy": "https://tickets.philorch.org/api/seating/GetSeatmap"}, callback=ev.parse_performance_seats)
 
 
 
@@ -85,8 +98,7 @@ class EventParser(object):
         return f"{self.event}"
 
     def parse_performance_seats(self, response):
-
-        data = get_data(response, 'Message')
+        data = get_data(response.body, 'Message')
         all_seats_pricing = data['allSeatPricing']
         print(all_seats_pricing)
         print('\n---------------\n')
