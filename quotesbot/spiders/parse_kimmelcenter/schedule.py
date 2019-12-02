@@ -48,16 +48,16 @@ class ScheduleParser(object):
         for dt in data:
             event = dt['performance']
             street_number = event['venueAddress'].split(' ', 1)
-            # print(street_number[0])
+
             buy_url = f"https://tickets.philorch.org/SmartSeat/Index?itemNumber={event['id']}#/seatmap"
             url = "https://tickets.philorch.org/api/seating/GetSeatmap"
-            print("This is buy url")
+
             if url != "https://tickets.philorch.org/api/seating/GetSeatmap":
                 proxies = ""
             else:
                 proxies = "http://e5a4a23393fd42f6b538816e3f8fb0e9:@proxy.crawlera.com:8010/"
             data = {"itemType":0,
-                    "itemId":41228,
+                    "itemId":event['id'],
                     "minPrice":"null",
                     "maxPrice":"null",
                     "allowSeparatedSeats":"false",
@@ -103,9 +103,14 @@ class EventParser(object):
 
     def parse_performance_seats(self, response):
         data = get_data(response, 'Message')
-        all_seats_pricing = data['allSeatPricing']
-        print(all_seats_pricing)
-        print('\n---------------\n')
+
+        tickets_dict = {}
+        all_seats_pricing = data.get('allSeatPricing', [])
+
+        for seats_pricing in all_seats_pricing:
+
+            print(all_seats_pricing)
+            print('\n---------------\n')
 
 
         # data = self.get_data(response, '')
