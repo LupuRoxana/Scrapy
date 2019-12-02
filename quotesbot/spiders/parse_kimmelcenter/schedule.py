@@ -48,12 +48,14 @@ class ScheduleParser(object):
         for dt in data:
             event = dt['performance']
             street_number = event['venueAddress'].split(' ', 1)
-
             # print(street_number[0])
             buy_url = f"https://tickets.philorch.org/SmartSeat/Index?itemNumber={event['id']}#/seatmap"
             url = "https://tickets.philorch.org/api/seating/GetSeatmap"
             print("This is buy url")
-            print(buy_url)
+            if url != "https://tickets.philorch.org/api/seating/GetSeatmap":
+                proxies = ""
+            else:
+                proxies = "http://e5a4a23393fd42f6b538816e3f8fb0e9:@proxy.crawlera.com:8010/"
             data = {"itemType":0,
                     "itemId":41228,
                     "minPrice":"null",
@@ -68,7 +70,9 @@ class ScheduleParser(object):
                     "isSyosOnly":"false"}
             headers = {"content-type": "application/json"}
             ev = EventParser(event['name'], event['id'], buy_url, event['eventDate'], event['venueName'], street_number[0])
-            yield JSONRequest(url, method="POST", headers = headers, data = data, meta={"proxy": "https://tickets.philorch.org/api/seating/GetSeatmap"}, callback=ev.parse_performance_seats)
+            yield JSONRequest(url, method="POST", headers = headers, data = data, meta= {'proxy': proxies}, callback=ev.parse_performance_seats)
+
+
 
 
 
@@ -98,7 +102,7 @@ class EventParser(object):
         return f"{self.event}"
 
     def parse_performance_seats(self, response):
-        data = get_data(response.body, 'Message')
+        data = get_data(response, 'Message')
         all_seats_pricing = data['allSeatPricing']
         print(all_seats_pricing)
         print('\n---------------\n')
